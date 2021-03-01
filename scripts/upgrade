@@ -66,10 +66,11 @@ if [ -z "$final_path" ]; then
 fi
 
 # Cleaning legacy permissions
-is_public=$(ynh_app_setting_get --app=$app --key=is_public)
-skipped_uris=$(ynh_app_setting_get --app=$app --key=skipped_uris)
-unprotected_uris=$(ynh_app_setting_get --app=$app --key=unprotected_uris)
-protected_uris=$(ynh_app_setting_get --app=$app --key=protected_uris)
+if ynh_legacy_permissions_exists; then
+	ynh_legacy_permissions_delete_all
+
+	ynh_app_setting_delete --app=$app --key=is_public
+fi
 
 # Remove is_public if exists
 if [ ! -z "$is_public" ]; then
@@ -277,22 +278,9 @@ ynh_script_progression --message="Securing files and directories..."
 chown -R $app:www-data $final_path
 
 #=================================================
-# SETUP SSOWAT
-#=================================================
-ynh_script_progression --message="Upgrading SSOwat configuration..." --weight=1
-
-# Make app public if necessary
-if [ $is_public -eq 1 ]
-then
-	# Everyone can access the app.
-	# The "main" permission is automatically created before the install script.
-	ynh_permission_update --permission "main" --add "visitors"
-fi
-
-#=================================================
 # RELOAD NGINX
 #=================================================
-ynh_script_progression --message="Reloading nginx web server..." --weight=1
+ynh_script_progression --message="Reloading NGINX web server..." --weight=1
 
 ynh_systemd_action --service_name=nginx --action=reload
 
